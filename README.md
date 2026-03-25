@@ -36,11 +36,11 @@ This repository contains code for **Model 6-8** of the roadmap.
 
 Completed models:
 
-- [Model 1: Longitudinal Point Mass (1D)](#model-1-longitudinal-point-mass-1d)
-- [Model 2: Load Transfer Without Traction Limits (1D)](#model-2-load-transfer-without-traction-limits-1d)
-- [Model 3: Engine Torque + Gearing without Slip (1D)](#model-3-engine-torque--gearing-without-slip-1d)
-- [Model 4: Wheel Rotational Dynamics (1D)](#model-4-wheel-rotational-dynamics-1d)
-- [Model 5: Slip Ratio + Traction Curve (1D)](#model-5-slip-ratio--traction-curve-1d)
+- [Model 1: Longitudinal Point Mass (1D)](https://github.com/duy-phamduc68/Longitudinal-Car-Physics#model-1-longitudinal-point-mass-1d)
+- [Model 2: Load Transfer Without Traction Limits (1D)](https://github.com/duy-phamduc68/Longitudinal-Car-Physics#model-2-load-transfer-without-traction-limits-1d)
+- [Model 3: Engine Torque + Gearing without Slip (1D)](https://github.com/duy-phamduc68/Longitudinal-Car-Physics#model-3-engine-torque--gearing-without-slip-1d)
+- [Model 4: Wheel Rotational Dynamics (1D)](https://github.com/duy-phamduc68/Longitudinal-Car-Physics#model-4-wheel-rotational-dynamics-1d)
+- [Model 5: Slip Ratio + Traction Curve (1D)](https://github.com/duy-phamduc68/Longitudinal-Car-Physics#model-5-slip-ratio--traction-curve-1d)
 - [Model 6: Low-Speed Kinematic Turning (2D)]
 - [Model 7: High-Speed Lateral Tire Model (2D)]
 - [Model 8: Full Coupled Tire Model (2D)]
