@@ -1,0 +1,1220 @@
+<!DOCTYPE doctype PUBLIC "-//w3c//dtd html 4.0 transitional//en">
+<!-- saved from url=(0093)https://www.asawicki.info/Mirror/Car%20Physics%20for%20Games/Car%20Physics%20for%20Games.html -->
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+
+  <meta name="keywords"
+    content="game,programming, car, physics, rigid body dynamics, acceleration,tutorial,c, djgpp, allegro">
+  <meta name="description" content="game programming tutorial">
+  <title>Car Physics</title>
+  <link type="text/css" rel="stylesheet" id="dark-mode-custom-link">
+  <link type="text/css" rel="stylesheet" id="dark-mode-general-link">
+  <style lang="en" type="text/css" id="dark-mode-custom-style"></style>
+  <style lang="en" type="text/css" id="dark-mode-native-style"></style>
+  <style lang="en" type="text/css" id="dark-mode-native-sheet"></style>
+</head>
+<style>
+  body {
+    background-color: #111;
+    color: #e0e0e0;
+    font-family: Verdana, Arial, sans-serif;
+  }
+
+  a {
+    color: #4ea3ff;
+  }
+
+  a:visited {
+    color: #b388ff;
+  }
+
+  hr {
+    border-color: #333;
+  }
+
+  table {
+    color: #e0e0e0;
+  }
+
+  img {
+    opacity: 0.9;
+  }
+
+  /* Optional: improve readability */
+  p {
+    line-height: 1.6;
+  }
+
+  center {
+    color: #e0e0e0;
+  }
+</style>
+
+<body>
+  <center><b>
+      <font face="verdana">
+        <font color="#ff00ff">
+          <font size="+2">Car
+            Physics for Games</font>
+        </font>
+      </font>
+    </b> <br>
+    by <a href="http://home.planet.nl/%7Emonstrous">Marco Monster</a></center>
+  <p><b>Level:</b> Advanced </p>
+  <p><b>Abstract: </b><i>An introduction to car physics modelling for
+      games.</i> </p>
+  <p> </p>
+  <hr>
+  <p>version 1.9 <br>
+    November, 2003&nbsp; <br>
+    &nbsp;&nbsp; <br>
+    &nbsp; </p>
+  <h4>Introduction</h4>
+  <p>This tutorial is about simulating cars in games, in other words
+    vehicle physics.&nbsp; &nbsp;</p>
+  <p>One of the key points in simplifying vehicle physics is to handle
+    the longtitudinal and lateral forces separately.&nbsp; Longtitudinal
+    forces operate in the direction of the car body (or in the exact
+    opposite direction).&nbsp; These are wheel force, braking force, rolling
+    resistance and drag (= airresistance).&nbsp; Together these forces
+    control the acceleration or deceleration of the car and therefore the
+    speed of the car.&nbsp; Lateral forces allow the car to turn.&nbsp;
+    These forces are caused by sideways friction on the wheels.&nbsp; We'll
+    also have a look at the angular moment of the car and the torque caused
+    by lateral forces. </p>
+    <hr>
+  <h4>Notation and conventions</h4>
+  Vectors are shown in<b> bold,</b> we'll be using 2d vectors.&nbsp; So the
+  notation <b>a</b> = -<b>b </b>would translate to the following code
+  snippet: <br>
+  <tt>&nbsp;&nbsp;&nbsp; a.x = -b.x</tt> <br>
+  <tt>&nbsp;&nbsp;&nbsp; a.y = -b.y</tt>
+  <p>Throughout this tutorial I'll be assuming that the rear wheels
+    provide all the drive (for four wheel drives apply the neccesary
+    adaptations). </p>
+  <p>I'll be mainly using S.I. units (meters, kilograms, Newtons, etc.),
+    but I've included a handy conversion table at the end for those readers
+    more familiar with&nbsp;imperial measures (pounds, feet, miles, etc.) <br>
+    &nbsp; </p>
+    <hr>
+  <h4>Straight line physics</h4>
+  First let's consider a car driving in a straight line.&nbsp; Which
+  forces are at play here?&nbsp; First of all there's what the tractive
+  force, i.e. the force delivered by the engine via the rear wheels.&nbsp;
+  The engine turns the wheels forward (actually it applies a torque on the
+  wheel), the wheels push backwards on the road surface and, in reaction,
+  the road surface pushes back in a forward direction.&nbsp; For now,
+  we'll just say that the tractive force is equivalent in magnitude to
+  the variable Engineforce, which is controlled directly by the user.
+  <p>&nbsp;&nbsp;&nbsp; <b>F</b><sub>traction</sub> = <b>u</b> *
+    Engineforce, <br>
+    &nbsp;&nbsp;&nbsp; where <b>u</b> is a unit vector in the direction of
+    the car's heading.</p>
+  <p>If this were the only force, the car would accelerate to infinite
+    speeds.&nbsp; Clearly, this is not the case in real life.&nbsp; Enter
+    the resistance forces.&nbsp; The first and usually the most important
+    one is air resistance, a.k.a. aerodynamic drag.&nbsp; This force is so
+    important because it is proportional to the square of the velocity. When
+    we're driving fast (and which game doesn't involve high speeds?) this
+    becomes the most important resistance force. </p>
+  <p>&nbsp;&nbsp;&nbsp; <b>F</b><sub>drag</sub> = - C<sub>drag</sub> * <b>v
+      * |v|</b> <br>
+    &nbsp;&nbsp;&nbsp; where C<sub>drag</sub> is a constant and <b>v</b> is
+    the velocity vector and the notation <strong>|v| </strong> refers to
+    the magnitude of&nbsp;vector&nbsp;<strong>v</strong><br>
+    &nbsp;&nbsp;&nbsp; </p>
+  <p> The magnitude of the velocity vector is more commonly known as the
+    speed. Note the difference of data type: speed is a scalar, velocity is
+    a vector.&nbsp;Use something like the following code: </p>
+  <p><tt>&nbsp;&nbsp;&nbsp; speed = sqrt(v.x*v.x + v.y*v.y);</tt> <br>
+    <tt>&nbsp;&nbsp;&nbsp; fdrag.x = - Cdrag * v.x * speed;</tt> <br>
+    <tt>&nbsp;&nbsp;&nbsp; fdrag.y = - Cdrag * v.y * speed;</tt>
+  </p>
+  <p>Then there is the rolling resistance. This is caused by friction
+    between the rubber and road surface as the wheels roll along and
+    friction in the axles, etc.etc.. We'll approximate this with a force
+    that's proportional to the velocity using another constant. </p>
+  <p>&nbsp;&nbsp;&nbsp; <b>F</b><sub>rr</sub> = - C<sub>rr</sub> * <b>v</b> <br>
+    &nbsp;&nbsp;&nbsp; where C<sub>rr</sub> is a constant and <b>v</b> is
+    the velocity vector. </p>
+  <p>At low speeds the rolling resistance is the main resistance force,
+    at high speeds the drag takes over in magnitude. At approx. 100 km/h (60
+    mph, 30 m/s) they are equal ([Zuvich]). This means C<sub>rr</sub> must be
+    approximately 30 times the value of C<sub>drag</sub> </p>
+  <p>The total longtitudinal force is the vector sum of these three
+    forces. </p>
+  <p>&nbsp;&nbsp;<b>&nbsp; F</b><sub>long</sub> =&nbsp;&nbsp; <b>F</b><sub>traction</sub>
+    + <b>F</b><sub>drag</sub>&nbsp;&nbsp; + <b>F</b><sub>rr</sub> </p>
+  <p>Note that if you're driving in a straight line the drag and rolling
+    resistance forces will be in the opposite direction from the traction
+    force.&nbsp; So in terms of&nbsp; magnitude, you're subtracting the
+    resistance force from the traction force.&nbsp; When the car is cruising
+    at a constant speed the forces are in equilibrium and <b>F</b><sub>long</sub>
+    is zero. </p>
+  <p>The acceleration (a) of the car (in meters per second squared) is
+    determined by the net force on the car (in Newton) and the car's mass M
+    (in kilogram) via Newton's second law: </p>
+  <p>&nbsp;&nbsp;&nbsp; <b>a</b> = <b>F</b> / M </p>
+  <p>The car's velocity (in meters per second) is determined by
+    integrating the acceleration over time.&nbsp; This sounds more
+    complicated than it is, usually the following equation does the
+    trick.&nbsp; This is known as the Euler method for numerical
+    integration. </p>
+  <p>&nbsp;&nbsp;&nbsp; <b>v</b> = <b>v</b> + dt * <b>a</b>, <br>
+    &nbsp;&nbsp;&nbsp; where dt is the time increment in seconds between
+    subsequent calls of the physics engine. </p>
+  <p>The car's position is in turn determined by integrating the velocity
+    over time: </p>
+  <p>&nbsp;&nbsp;&nbsp; <b>p</b> = <b>p</b> + dt * <b>v</b> </p>
+  <p>With these three forces we can simulate car acceleration fairly
+    accurately.&nbsp; Together they also determine the top speed of the car
+    for a given engine power. There is no need to put a maximum speed
+    anywhere in the code, it's just something that follows from the
+    equations.&nbsp; This is because the equations form a kind of negative
+    feedback loop.&nbsp; If the traction force exceeds all other forces, the
+    car accelerates.&nbsp; This means the velocity increases which causes
+    the resistance forces to increase.&nbsp; The net force decreases and
+    therefore the acceleration decreases.&nbsp; At some point the resistance
+    forces and the engine force cancel each other out and the car has
+    reached its top speed for that engine power. </p>
+  <center>
+    <p><img alt="graph" src="./media/ctgraph.jpg" height="289" width="492"></p>
+  </center>
+  <p>In this diagram the X-axis denotes car velocity in meters per second
+    and force values are set out along the Y-axis.&nbsp; The traction force
+    (dark blue) is set at an arbitrary value, it does not depend on the car
+    velocity.&nbsp; The rolling resistance (purple line) is a linear
+    function of velocity and the drag (yellow curve) is a quadratic function
+    of velocity.&nbsp; At low speed the rolling resistance exceeds the
+    drag.&nbsp; At 30 m/s these two functions cross.&nbsp; At higher speeds
+    the drag is the larger resistance force.&nbsp; The sum of the two
+    resistance forces is shown as a light blue curve.&nbsp; At 37 m/s this
+    curve crosses the horizontal traction force line.&nbsp; This is the top
+    speed for this particular value of the engine power (37 m/s = 133 km/h
+    = 83 mph). <br>
+    &nbsp; </p>
+    <hr>
+  <h4>Magic Constants</h4>
+  So far, we've introduced two magic constants in our equations: C<sub>drag</sub>
+  and C<sub>rr</sub> .&nbsp; If you're not too concerned about realism you
+  can give these any value that looks and feels good in your game.&nbsp;
+  For example, in an arcade racer you may want to have a car that
+  accelerates faster than any car in real life.&nbsp; On the other hand,
+  if you're really serious about realistic simulation, you'll want to get
+  these constants exactly right.
+  <p>Air resistance is approximated by the following formula (<i>Fluid
+      Mechanics</i> by Landau and Lifshitz, [Beckham] chapter 6, [Zuvich]) </p>
+  <p>&nbsp;&nbsp;&nbsp; F<sub>drag</sub> =&nbsp; 0.5 * C<sub>d</sub> * A
+    * rho * v<sup>2</sup> </p>
+  <p>&nbsp;&nbsp;&nbsp; where C<sub>d</sub> = coefficient of friction <br>
+    &nbsp;&nbsp;&nbsp; A is frontal area of car <br>
+    &nbsp;&nbsp;&nbsp; rho (Greek symbol&nbsp;<img src="./media/ctrho.gif" height="14" width="11">)= density
+    of air <br>
+    &nbsp;&nbsp;&nbsp; v = speed of the car </p>
+  <p>Air density (rho) is 1.29 kg/m<sup>3 </sup>(0.0801 lb-mass/ft<sup>3</sup>),
+    frontal area is approx. 2.2 m<sup>2</sup> (20 sq. feet), C<sub>d</sub>
+    depends on the shape of the car and determined via wind tunnel
+    tests.&nbsp; Approximate value for a Corvette: 0.30.&nbsp; This gives us
+    a value for C<sub>drag</sub>: <br>
+    &nbsp;&nbsp;&nbsp; C<sub>drag</sub> = 0.5 * 0.30 * 2.2 * 1.29 <br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    = 0.4257 </p>
+  <p>We've already found that C<sub>rr</sub> should be approx. 30 times C<sub>drag</sub>.&nbsp;
+    This gives us <br>
+    &nbsp;&nbsp;&nbsp; C<sub>rr</sub> = 30 * 0.4257 <br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 12.8 <br>
+    &nbsp; </p>
+  <p>To be honest, I have my doubts about this last constant. I couldn't
+    confirm its value anywhere. Be prepared to finetune this one to get
+    realistic behaviour. </p>
+    <hr>
+  <h4>Braking</h4>
+  When braking, the traction force is replaced by a braking force which
+  is oriented in the opposite direction.&nbsp; The total longtitudinal
+  force is then the vector sum of these three forces.
+  <p>&nbsp;&nbsp;<b>&nbsp; F</b><sub>long</sub> =&nbsp;&nbsp; <b>F</b><sub>braking</sub>
+    + <b>F</b><sub>drag</sub>&nbsp;&nbsp; + <b>F</b><sub>rr</sub> </p>
+  <p>A simple model of braking: </p>
+  <p>&nbsp;&nbsp;<b>&nbsp; F</b><sub>braking</sub> = -<b>u * </b>C<sub>braking</sub> </p>
+  <p>In this model the braking force is a constant.&nbsp; Keep in mind to
+    stop applying the braking force as soon as the speed is reduced to zero
+    otherwise the car will end up going in reverse. <br>
+    &nbsp; </p>
+    <hr>
+  <h4>Weight Transfer</h4>
+  An important effect when accelerating or braking is the effect of
+  dynamic weight transfer.&nbsp; When braking hard the car will
+  nosedive.&nbsp; During accelerating, the car leans back.&nbsp; This is
+  because just like the driver is pushed back in his seat when the pedal
+  hits the metal, so is the car's centre of mass. The effect of this is
+  that the weight on the rear wheels increases during acceleration and the
+  front wheels conversely have less weight to bear.
+  <p>The effect of weight transfer is important for driving games for two
+    reasons.&nbsp; First of all the visual effect of the car pitching in
+    response to driver actions adds a lot of realism to the game. Suddenly,
+    the simulation becomes a lot more lifelike in the user's experience. </p>
+  <p>Second of all, the weight distribution dramatically affects the
+    maximum traction force per wheel. This is because there is a friction
+    limit for a wheel that is proportional to the load on that wheel: </p>
+  <p>&nbsp;&nbsp;<b>&nbsp; F</b><sub>max</sub> = mu<b> * </b>W <br>
+    &nbsp;&nbsp;&nbsp; where mu is the friction coefficient of the tyre.
+    For street tyres this may be 1.0, for racing car tyres this can get as
+    high as 1.5. </p>
+  <p>For a stationary vehicle the total weight of the car (W, which
+    equals M *g) is distributed over the front and rear wheels according to
+    the distance of the rear and front axle to the CM (c and b
+    respectively): <br>
+    &nbsp;&nbsp;&nbsp; W<sub>f</sub> = (c/L)*W <br>
+    &nbsp;&nbsp;&nbsp; W<sub>r</sub> = (b/L)*W <br>
+    &nbsp;&nbsp;&nbsp; where b is the distance from CG to front axle, c the
+    distance from CG to rear axle and L is the wheelbase. <br>
+    &nbsp; <br>
+    &nbsp; <br>
+  </p>
+  <center>
+    <p><img src="./media/ctwd.jpg" height="260" width="400"></p>
+  </center>
+  <p>If the car is accelerating or decelerating at rate a, the weight on
+    front (W<sub>f</sub>) and rear axle (W<sub>r</sub>) can be calculated as
+    follows: <br>
+    &nbsp;&nbsp;&nbsp; W<sub>f</sub> = (c/L)*W - (h/L)*M*a <br>
+    &nbsp;&nbsp;&nbsp; W<sub>r</sub> = (b/L)*W + (h/L)*M*a, <br>
+    &nbsp;&nbsp;&nbsp; where h is the height of the CG, M is the car's mass
+    and a is the acceleration (negative in case of deceleration). </p>
+  <p>Note that if the CG is further to the rear (c &lt; b), then more
+    weight falls on the rear axle and vice versa. Makes sense, doesn't it?</p>
+  <p>If you want to simplify this, you could assume that the static
+    weight distribution is 50-50 over the front and rear axle. In other
+    words, assume b = c = L/2. In that case, W<sub>f</sub> = 0.5*W -
+    (h/L)*M*a and W<sub>r</sub> = 0.5*W +(h/L)*M*a; <br>
+    &nbsp; <br>
+    &nbsp; </p>
+    <hr>
+  <h4>Engine Force</h4>
+  <p>When I said earlier that the engine delivers a certain amount of
+    force, this was a a bit of a simplification.&nbsp; An engine delivers an
+    amount of <em>torque</em>.&nbsp; Torque is like a rotational equivalent
+    of force.&nbsp;Torque is force times distance.&nbsp;If you apply a 10
+    Newton force at 0.3 meters of the axis of rotation, you've got a torque
+    of 10 x 0.3 = 3 N.m (Newton meter). That's the same torque as when you
+    apply a 1 N force at 3 m from the axis. In both cases the leverage is
+    the same.</p>
+  <p>The torque that an engine can deliver depends on the speed at which
+    the engine is turning, commonly expressed as rpm (revolutions per
+    minute). The relationship torque versus rpm is&nbsp;not a linear
+    relationship, but is usually provided as a curve known as a torque curve
+    (the exact shape and height of the&nbsp;curve is specific for each
+    engine type, it is determined by engine tests). Here's an example for
+    the 5.7 liter V8 engine found in Corvettes from 1997 to 2000: the LS1 </p>
+  <center>
+    <p> <img alt="torque curve for the Corvette LS1 engine" src="./media/cttorq.gif" border="0" height="368"
+        width="587"> </p>
+  </center>
+  <p>Note that the torque curve peaks at about 4400 rpm with a torque of
+    350 lb-ft (475 N.m) and horsepower peaks at 5600 rpm at 345 hp (257 kW).
+    The curves are only defined in the range from,&nbsp;in this particular
+    case,&nbsp;about 1000 to 6000 rpm, because that is the operating range
+    of the engine. Any lower, and the engine will stall.&nbsp; Any higher
+    (above the so-called "redline"), and you'll damage it.</p>
+  <p>Oh, and by the way, this is the <em>maximum</em> torque the engine
+    can deliver at a given rpm. The actual torque that the engine delivers
+    depends on your throttle position and is a fraction between&nbsp; 0 and
+    1 of this maximum.</p>
+  <i></i><i></i>
+  <p>We're mostly interested in the torque curve, but some people find
+    the power curve also interesting. You can derive the horsepower from the
+    torque in foot-pounds using the following equation: </p>
+  <blockquote>hp = torque * rpm / 5252</blockquote>
+  <p>Because of this relationship, the two curves will always cross at
+    5252 rpm. Check for yourself in the diagram above. </p>
+  <p>And here's the same curves in SI units: Newton meter for torque and
+    kiloWatt for power. The curves are the same shape, but the relative
+    scale is different (and because of that they don't cross either). </p>
+  <center>
+    <p> <img alt="Same curves but now in SI units" src="./media/cttorqsi.gif" border="0" height="392"
+        width="451"> </p>
+  </center>
+  <p>Now, the torque from the engine (i.e. at the crankshaft) is
+    converted via the gear and differential before it's applied to the rear
+    wheels. The gearing multiplies the torque from the engine by a factor
+    depending on the gear ratios. </p>
+  <p> Unfortunately, quite some energy is lost in the process. As much as
+    30% of the energy could be lost in the form of heat. This gives a
+    so-called transmission efficiency of 70%. Let me just point out that
+    I've seen this mentioned as a typical value, I don't&nbsp;have
+    actual&nbsp;values for any particular car.&nbsp; </p>
+  <p>The torque on the rear axle can be converted to a force of the wheel
+    on the road surface by dividing by the wheel radius. (Force is torque
+    divided by distance). </p>
+  <p>By the way, if you want to work out the radius of a tyre from those
+    cryptic tyre identfication codes, have a look at the The Wheel and Tyre
+    Bible (<a href="http://www.carbibles.com/">http://www.carbibles.com</a>
+    ). It even provides a handy little calculator.&nbsp; For example, this
+    tells us the P275/40ZR-18 rear tyres of a Corvette have an unloaded
+    radius of 34 cm. </p>
+  <p>Here's an equation to get from engine torque to drive force: the
+    longtitudinal force that the two rear wheels exert on the road surface. </p>
+  <p>&nbsp;&nbsp;&nbsp; <b>F</b><sub>drive</sub> = <b>u</b> * T<sub>engine</sub>
+    * x<sub>g</sub> * x<sub>d</sub> * n / R<sub>w</sub> <br>
+    &nbsp;&nbsp;&nbsp; where <br>
+    &nbsp;&nbsp;&nbsp; <b>u</b> is a unit vector which reflects the car's
+    orientation, <br>
+    &nbsp;&nbsp;&nbsp; T<sub>engine</sub> is the torque of the engine at a
+    given rpm,<br>
+    &nbsp;&nbsp;&nbsp; x<sub>g</sub> is the gear ratio,<br>
+    &nbsp;&nbsp;&nbsp; x<sub>d</sub> is the differential ratio,<br>
+    &nbsp;&nbsp;&nbsp; n is transmission efficiency and <br>
+    &nbsp;&nbsp;&nbsp; R<sub>w</sub> is wheel radius.&nbsp; <br>
+    &nbsp;&nbsp; <br>
+    An example: </p>
+  <p>Engine is running at 2500 rpm, looking this up on the curve gives
+    engine torque of 448 Nm (=330 ft lbs) <br>
+    Gear ratio (first gear): 2.66 <br>
+    Differential ratio: 3.42 <br>
+    Transmission efficiency: 0.7 (guess)&nbsp; <br>
+    Wheel radius: 0.34 m (=13.4 inch) <br>
+    Mass: 1500 kg (= 3300 lbs of weight) including the driver. </p>
+  <p>This gives us a potential drive force of (448*2.66*3.42*0.7/0.34 = )
+    8391 N if the driver puts his foot down. </p>
+  <p>Meanwhile, in the static situation, the weight on the rear wheels is
+    half the weight of the car and driver: (1500 kg / 2 ) * 9.8 m/s<sup>2</sup>
+    = 7350 N (=1650 lbs).&nbsp; This means the maximum amount of traction
+    the rear wheels can provide if mu = 1.0 is 7350 N.&nbsp; Push the pedal
+    down further than that and the wheels will start spinning and lose grip
+    and the traction actually drops below the maximum amount.&nbsp; So, for
+    maximum acceleration the driver must exert an amount of force just below
+    the friction threshold.&nbsp; The subsequent acceleration causes a
+    weight shift to the rear wheels.&nbsp; The acceleration is: <br>
+    &nbsp;&nbsp;&nbsp; a = 7350 N / 1500 kg&nbsp; = 4.9 m/s<sup>2</sup>&nbsp;
+    (=0.5 G) </p>
+  <p>Let's say that b = c = 1.25m and L is therefore 2.50 m, the CG is
+    1.0 m above ground level.&nbsp; After a brief moment the amount of
+    shifted weight is then (h/L)*M*a, that is (1.0/2.50)*1500*4.9 = 2940 N. </p>
+  <p>This means W<sub>f</sub> =&nbsp; 7350 - 2940 N and W<sub>r</sub> =
+    7350 + 2940 N. The rear wheels now have extra weight which in this case
+    is sufficient to allows the driver to put his foot all the way down. <br>
+    &nbsp; </p>
+    <hr>
+  <h4>Gear Ratios</h4>
+  <p>The following gear ratios apply to an&nbsp;Corvette C5 hardtop
+    (Source: <a href="http://www.idavette.net/facts/c5specs/">http://www.idavette.net/facts/c5specs/</a>
+    )</p>
+  <table border="0" cellspacing="0" width="320">
+    <tbody>
+      <tr>
+        <td valign="center" width="59%">First gear</td>
+        <td valign="center" width="25%">
+          <center>g1</center>
+        </td>
+        <td valign="center" width="16%">
+          <center>2.66</center>
+        </td>
+      </tr>
+      <tr>
+        <td valign="center" width="59%">Second gear</td>
+        <td valign="center" width="25%">
+          <center>g2</center>
+        </td>
+        <td valign="center" width="16%">
+          <center>1.78</center>
+        </td>
+      </tr>
+      <tr>
+        <td valign="center" width="59%">Third gear</td>
+        <td valign="center" width="25%">
+          <center>g3</center>
+        </td>
+        <td valign="center" width="16%">
+          <center>1.30</center>
+        </td>
+      </tr>
+      <tr>
+        <td valign="center" width="59%">Fourth gear</td>
+        <td valign="center" width="25%">
+          <center>g4</center>
+        </td>
+        <td valign="center" width="16%">
+          <center>1.0</center>
+        </td>
+      </tr>
+      <tr>
+        <td valign="center" width="59%">Fifth gear</td>
+        <td valign="center" width="25%">
+          <center>g5</center>
+        </td>
+        <td valign="center" width="16%">
+          <center>0.74</center>
+        </td>
+      </tr>
+      <tr>
+        <td valign="center" width="59%">Sixth (!) gear</td>
+        <td valign="center" width="25%">
+          <center>g6</center>
+        </td>
+        <td valign="center" width="16%">
+          <center>0.50</center>
+        </td>
+      </tr>
+      <tr>
+        <td valign="center" width="59%">Reverse</td>
+        <td valign="center" width="25%">
+          <center>gR</center>
+        </td>
+        <td valign="center" width="16%">
+          <center>2.90</center>
+        </td>
+      </tr>
+      <tr>
+        <td valign="center" width="59%">Differential ratio&nbsp;</td>
+        <td valign="center" width="25%">
+          <center>x<sub>d</sub></center>
+        </td>
+        <td valign="center" width="16%">
+          <center>3.42</center>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Max torque 475 N.m (350 lb ft) at 4400 rpm, mass = 1439 kg
+    (ignoring the driver for now). In first gear at max torque this gives
+    us a whopping 475*2.66*3.42*0.7/0.33 = &nbsp;9166 N of force. This will
+    accelerate a mass of 1439 kg with 6.4 m/s<sup>2</sup> (a=F/m) which
+    equals 0.65 g. </p>
+  <p>The combination of gear and differential acts as a multiplier from
+    the torque on the crankshaft to the torque on the rear wheels. For
+    example, the Corvette in first gear has a multiplier of&nbsp;2.66 * 3.42
+    = 9.1. This means each Newton meter of torque on the crankshaft results
+    in 9.1 Nm of torque on the rear axle. Accounting for 30% loss of energy,
+    this leaves&nbsp;6.4 N.m. Divide this by the wheel radius to get the
+    force exerted by the wheels on the road (and conversely by the road
+    back to the wheels). Let's take a 34 cm wheel radius, that gives us 6.4
+    N.m/0.34 m = 2.2 N of force per N.m of engine torque. Of course,
+    there's no such thing as a free lunch. You can't just multiply torque
+    and not have to pay something in return. What you gain in torque, you
+    have to pay back in angular velocity. You trade off strength for speed.
+    For each rpm of the wheel, the engine has to do 9.1 rpm. The rotational
+    speed of the wheel is directly related to the speed of the car (unless
+    we're skidding). One rpm (revolution per minute) is 1/60th of a
+    revolution per second. Each revolution takes the wheel 2 pi R further,
+    i.e. 2 * 3.14 * 0.34 = 2.14 m. So when the engine is doing 4400 rpm
+    in first gear, that's&nbsp;483 rpm of the wheels, is&nbsp;8.05 rotations
+    per second is 17.2 m/s, about&nbsp;62 km/h. </p>
+  <p>In low gears the gear ratio is high, so you get lots of torque but
+    no so much speed. In high gears, you get more speed but less torque. You
+    can put this in a graph as a set of curves, one for each gear, as in the
+    following example. </p>
+  <center>
+    <p> <img alt="torque curves per gear" src="./media/ctgrcrvs.gif" border="0" height="416" width="638">
+    </p>
+  </center>
+  Note that these curves assume a 100% efficient gearing. The engine's
+  torque curve is shown as well for reference, it's the bottom one in
+  black. The other curves show the torque on the rear axle for a given
+  rpm of the axle (!), rather than the engine. As we've already seen, the
+  rotation rate of the wheels can be related to car speed (disregarding
+  slip for the moment) if we know the wheel radius. This means 1000 rpm <i>of
+    the rear axle</i> is 36 m/s or 128 km/h car speed (80 mph). 2000 rpm
+  is&nbsp;256 km/h (160 mph). Etcetera.
+  <hr>
+  <h4> Drive wheel acceleration</h4>
+  <p>Now beware, the torque that we can look up in the torque curves
+    above for a given rpm, is the <em>maximum </em>torque at that rpm. How
+    much torque is actually applied to the drive wheels depends on the
+    throttle position.&nbsp; This position is determined by user input (the
+    accelerator pedal) and varies from 0 to 100%. So, in pseudo-code, this
+    looks something like this:</p>
+  <p> &nbsp;&nbsp;&nbsp;max torque = LookupTorqueCurve( rpm )<br>
+    &nbsp;&nbsp;&nbsp;engine torque = throttle position * max torque</p>
+  <p>You could implement the function LookupTorqueCurve by using an array
+    of torque/rpm value pairs and doing linear interpolation between the
+    closest two&nbsp;points.</p>
+  <p>This torque is delivered to the drive wheels via the gearbox and
+    results in what I'll call the drive torque:</p>
+  <p>&nbsp;&nbsp;&nbsp; drive torque = engine_torque * gear_ratio *
+    differential_ratio * transmission_efficiency</p>
+  <p>Or written more concisely as:</p>
+  <p>&nbsp;&nbsp;&nbsp; T<sub>drive</sub> =&nbsp; T<sub>engine</sub> * x<sub>g</sub>
+    * x<sub>d</sub> * n <br>
+  </p>
+  <p>Because F<sub>drive</sub> = T<sub>drive</sub> / R<sub>w&nbsp;</sub>,
+    this is the same as the equation for drive force we saw earlier.</p>
+  <p>Note that the gearbox <i>increases</i> the torque, but <i>reduces</i>
+    the rate of rotation, especially in low gears.</p>
+  <p> <b>How do we get the RPM?</b></p>
+  <p>So we need the rpm to&nbsp;calculate the engine's max torque and
+    from there the engine's actual applied torque. In other words, now we
+    need to know has fast the engine's crankshaft is turning. </p>
+  <p>The way I do it is to calculate this back from the drive wheel
+    rotation speed.&nbsp; After all, if the engine's not declutched, the
+    cranckshaft and the drive wheels are physically connected through a set
+    of gears. If we know the rpm, we can calculate the rotation speed of the
+    drive wheels, and vice versa!</p>
+  <p>rpm = wheel rotation rate *&nbsp;gear ratio * differential ratio *
+    60 / 2 pi</p>
+  <p> The 60 / 2 pi is a conversion factor to get from rad/s to
+    revolutions per minute.&nbsp; There are 60 seconds in a minute and 2 pi
+    radians per revolution.&nbsp; According to this equation, the
+    cranckshaft rotates faster than the drive wheels. For example, let's say
+    the wheel is rotating at 17 rad/s.</p>
+  <p>Wheel rotates at 17 rad/s.<br>
+    First gear ratio is 2.66, differential ratio is 3.42 so crankshaft is
+    rotating at 153 rad/s.<br>
+    That's 153*60 = 9170 rad/minute = 9170/2 pi = 1460 rpm&nbsp;at the
+    engine.</p>
+  <p> Because the torque curve isn't defined below a certain rpm, you may
+    need to make sure the rpm is at least at some minimum value. E.g.</p>
+  <pre>if( rpm &lt; 1000 )<br>	rpm = 1000;<br></pre>
+  <p>This is needed to get the car into motion from a standstill.&nbsp;
+    The wheels aren't turning so the rpm calculation would provide
+    zero.&nbsp; At zero rpm, the engine torque is either undefined or zero,
+    depending how your torque curve lookup is implemented. That would mean
+    you'd never be able to get the car moving. In real life, you'd be using
+    the clutch in this case, gently declutching while the car starts moving.
+    So wheel rotation and engine rpm are more or less decoupled in this
+    situation.</p>
+  <p>There are two ways to get the wheel rotation rate.&nbsp; The first
+    one is the easiest, but a bit of a quick hack.&nbsp; The second one
+    involves some more values to keep track of over time, but is more
+    accurate and will allow for wheel spins, etcetera.</p>
+  <p>The easy way is to pretend the wheel is rolling and derive the
+    rotation rate from the car speed and the wheel radius.</p>
+  <p>For example, let's say the car is moving at 20 km/h = 20,000 m /
+    3600 s = 5.6 m/s.<br>
+    wheel radius is 0.33 m, so wheel angular velocity is 5.6/0.33 =&nbsp;17
+    rad/s</p>
+  <p>Plug this into the previous equations to get the&nbsp;1460 rpm, from
+    which we can look up the engine torque on the torque curve.</p>
+  <p>The more advanced way is to let the simulation keep track of the
+    rear wheel rotation rate and how it changes in time due to the torques
+    that act on the rear wheels. In other words, we find the rotation rate
+    by integrating the&nbsp;rotational acceleration over time.&nbsp; The
+    rotational acceleration at any particular instant depends on the sum of
+    all the torques on the axle and equals&nbsp;the net torque divided
+    by&nbsp;the rear axles inertia (just like linear accelaration is force
+    divided by mass). The net torque is the drive torque we saw earlier
+    minus the friction torques that counteract it (braking torque if you're
+    braking and traction torque from the contact with the road surface).</p>
+    <hr>
+  <h4>Slip ratio and traction force</h4>
+  <p> Calculating the wheel angular velocity from the car speed is only
+    allowed if the wheel is rolling, in other words if there is no lateral
+    slip between the tyre surface and the road.&nbsp; This is true for the
+    front wheels, but for drive wheels this is typically not true. After
+    all, if a wheel is just rolling along it is not transfering energy to
+    keep the car in motion.</p>
+  <p> In a typical situation where the car is cruising at constant speed, <em>the
+      rear wheels will be rotating slighty faster than the front wheels</em> .
+    The front wheels are rolling and therefore have zero slip. You can
+    calculate their angular velocity&nbsp;by just dividing the car
+    speed&nbsp;by 2 pi times the wheel radius.&nbsp; The rear wheels however
+    are rotating faster and that means the surface of the tyre is slipping
+    with regard to the road surface.&nbsp; This slip causes a friction
+    force in the direction opposing the slip.&nbsp;The friction force will
+    therefore be pointing to the front of the car.&nbsp; In fact, this
+    friction force, this reaction to the wheel slipping, is what pushes the
+    car forwards.&nbsp; This friction force is known as traction or as the
+    longtitudinal force.&nbsp; The traction depends on the amount of
+    slip.&nbsp; The standardised way of expressing the amount of slip
+    is&nbsp;as the so-called slip ratio:</p>
+  <div align="center"><img alt="SR = (omega.R - Vlong) / abs(Vlong)" src="./media/cteq_sr.gif" border="0"
+      height="69" width="174"></div>
+  <br>
+  where<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img alt="" src="./media/omega.gif" border="0" height="12" width="14">
+  <sub>w</sub> (pronounced:
+  omega) is wheel angular velocity (in rad/s)<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;R<sub>w</sub> is wheel radius (in m)<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;v<sub>long</sub> is car speed a.k.a.
+  longtitudinal velocity&nbsp;(in m/s)&nbsp;
+  <p></p>
+  <p> Note: there are a number of slightly different definitions for
+    slip ratio in use. This particular definition also works for cars
+    driving in reverse.</p>
+  <p>Slip ratio is zero for a free rolling wheel.&nbsp; For a car braking
+    with locked wheels the slip ratio is -1, and a car&nbsp;accelerating
+    forward has a positive slip ratio. It can even be larger than 1 of
+    there's a lot of slip.</p>
+  <p> The relationship between longtitudinal (forward) force and slip
+    ratio can be&nbsp;described by a curve such as the following:</p>
+  <div align="center"><img alt="slip ratio curve" src="./media/ctsrcurve.gif" border="0" height="274"
+      width="451"></div>
+  <div align="center"> </div>
+  <p>Note how the force is zero if the wheel rolls, i.e. slip ratio = 0,
+    and the force is at a peak for a slip ratio of approximately 6 % where
+    the longtitudinal force slightly exceeds the wheel load. The exact
+    curve shape may vary per tyre, per road surface, per temperature, etc.
+    etc.</p>
+  <p>That means a wheel grips best with a little bit of slip. Beyond that
+    optimum, the grip decreases. That's why a wheel spin, impressive as it
+    may seem, doesn't actually give you the best possible
+    acceleration.&nbsp; There is so much slip that the longtitudinal force
+    is below its peak value. Decreasing the slip would give you more
+    traction and better acceleration.</p>
+  <p>The longtitudinal force has (as good as) a linear dependency on
+    load, we saw that earlier when we dicussed weight transfer. &nbsp;So
+    instead of plotting a curve for each particular load value, we can
+    just&nbsp;create one normalized curve by dividing the force by the load.</p>
+  <p>To get from normalized longtitudinal force to actual longtitudinal
+    force, multiply by the load on the wheel.&nbsp;&nbsp;&nbsp;&nbsp; </p>
+  <blockquote>F<sub>long</sub> = F<sub>n, long</sub>&nbsp;* F<sub>z</sub><br>
+    where F<sub>n, long</sub>&nbsp;is the normalized longtitudinal force
+    for a given slip ratio and F<sub>z</sub> is the load on the tyre.</blockquote>
+  <p> For a simple simulation the longtitudinal force can be approximated
+    by a linear function: </p>
+  <blockquote>F<sub>long</sub> = C<sub>t</sub> * slip ratio</blockquote>
+  <p>where C<sub>t</sub> is known as the traction constant, which is the
+    slope of the slip ratio curve at the origin. Cap the force to a maximum
+    value so that the force doesn't increase after the slip ratio passes the
+    peak value. If you plot that in a curve, you get the following:</p>
+  <div align="center"><img alt="graph" src="./media/ct_srapprox.gif" border="0" height="170" width="224">
+  </div>
+  <hr>
+  <h4>Torque on the drive wheels</h4>
+  <p>To recap, the traction force is the friction force that the road
+    surface applies on the wheel surface.&nbsp; Obviously, this force will
+    cause a torque on the axis of each drive wheel:</p>
+  <p>&nbsp;&nbsp;&nbsp; traction torque = traction force * wheel radius</p>
+  <p>This torque will oppose the torque delivered by the engine to that
+    wheel (which we called the drive torque).&nbsp; If the brake is applied
+    this will cause a torque as well. For the brake, I'll assume it delivers
+    a constant torque in the direction opposite to the wheel' s rotation.
+    Take care of the direction, or you won't be able to brake when you're
+    reversing.</p>
+  <p>The following diagram illustrates this for an accelerating
+    car.&nbsp; The engine torque is magnified by the gear ratio and the
+    differential ratio and provides the drive torque on the rear
+    wheels.&nbsp; The angular velocity of the wheel is high enough that it
+    causes slip between the tyre surface and the road, which&nbsp;can be
+    expressed as a positive slip ratio. This results in a reactive friction
+    force, known as the traction force, which is what pushed the car
+    forward.&nbsp; The traction force also results&nbsp;in a traction torque
+    on the rear wheels which opposes the drive torque.&nbsp; In this case
+    the net torque is still positive and will result in an acceleration of
+    the rear wheel rotation rate. This will increase the rpm and increase
+    the slip ratio.</p>
+  <p> <img alt="diagram of torques on drive wheel" src="./media/tc_torques.png" border="0" height="266"
+      width="485"> </p>
+  <div align="center"></div>
+  <p> The net torque on the rear axle is the sum of&nbsp;following torques:</p>
+  <p>&nbsp;&nbsp; total torque = drive torque + traction torques from
+    both wheels&nbsp;+ brake torque</p>
+  <p>Remember that torques are signed quantities, the drive torque wil
+    generally have a different sign than the traction and brake torque. If
+    the driver is not braking, the brake torque is zero.</p>
+  <p>This torque will cause an angular acceleration of the drive wheels,
+    just like a force applied on a mass will cause it to accelerate.</p>
+  <p>&nbsp;&nbsp; angular acceleration = total torque / rear wheel
+    inertia.</p>
+  <p>I've found somewhere that the inertia of a solid cylinder around its
+    axis can be calculated as follows:</p>
+  <p>&nbsp;&nbsp; inertia of a cylinder = Mass * radius<sup>2</sup> / 2</p>
+  <p> So for a 75 kg wheel with a 33 cm radius that's an inertia
+    of&nbsp;75 *&nbsp; 0.33* 0.33 / 2 = 4.1 kg.m<sup>2&nbsp;</sup>You must
+    double that to get the total&nbsp;inertia of both wheels on the rear
+    axle and&nbsp;perhaps add something for the inertia of the axle itself,
+    the inertia of the gears and the inertia of the engine.&nbsp; </p>
+  <p>A positive angular acceleration will increase the angular velocity
+    of the rear wheels over time. As for the car velocity which depends on
+    the linear acceleration, we simulate this by doing one step of numerical
+    integration each time we go through the physics calculation:</p>
+  <p>&nbsp;&nbsp;&nbsp; rear wheel angular velocity += rear wheel angular
+    acceleration * time step</p>
+  <p>where time step is the amount of simulated time between two calls of
+    this function.&nbsp; This way we can determine how fast the drive wheels
+    are turning and therefore we can calculate the engine's rpm.</p>
+  <p><strong>The Chicken and the Egg</strong></p>
+  <p>Some people get confused at this point.&nbsp; We need the rpm to
+    calculate the torque, but the rpm depends on the rear wheel rotation
+    rate which depends on the torque. Surely, this is a circular definition,
+    a chicken and egg situation?</p>
+  <p>This is an example of a Differential Equation: we have equations for
+    different variables that mutually depend on each other. But we've
+    already seen another example of this before: air resistance depends on
+    speed, yet the speed depends on air resistance because that influences
+    the acceleration.</p>
+  <p>To solve differential equations in computer programs we use the
+    technique of numeric integration: if we know all the values at time <em>t</em>,
+    we can work out the values at time&nbsp;<em>t + delta.&nbsp; </em>In
+    other words, rather than trying to solve these mutually dependent
+    equations by going into an infinite loop, we take snapshots in time and
+    plug in values from the previous snapshot to work out the values of the
+    new snapshot.&nbsp; Just use the old values from the previous iteration
+    to calculate the new values for the current iteration.&nbsp; If the time
+    step is small enough, it will give you the results you need.</p>
+  <p>There's a lot of theory on differential equations and numeric
+    integration.&nbsp; One of the problems is that a numeric integrator can
+    "blow up" if the time step isn't small enough.&nbsp; Instead of
+    well-behaved values, they suddenly shoot to infinity because small
+    errors are multiplied quickly into larger and larger errors.&nbsp;
+    Decreasing the time step can help, but costs more cpu cycles. An
+    alternative is to use a smarter integrator, e.g. RK4.&nbsp; For more
+    information on this topic, see my article on numerical stability:<a
+      href="http://home.planet.nl/%7Emonstrous/tutstab.html">Achieving a Stable Simulator</a> </p>
+      <hr>
+  <p><b>Curves</b></p>
+  <p>Okay, enough of driving in a straight line. How about some turning? </p>
+  <p>One thing to keep in mind is that simulating the physics of turning
+    at low speed is different from turning at high speed. At low speeds
+    (parking lot manoeuvres), the wheels pretty much roll in the direction
+    they're pointed at. To simulate this, you need some geometry and some
+    kinetics. You don't really need to consider forces and mass. In other
+    words, it is a kinetics problem not a dynamics problem. </p>
+  <p>At higher speeds, it becomes noticeable that the wheels can be
+    heading in one direction while their movement is still in another
+    direction. In other words, the wheels can sometimes have a velocity that
+    is is not aligned with the wheel orientation. This means there is a
+    velocity component that is at a right angle to the wheel. This of course
+    causes a lot of friction. After all a wheel is designed to roll in a
+    particular direction and that without too much effort. Pushing a wheel
+    sideways is very difficult and causes a lot of friction force. In high
+    speed turns, wheels are being pushed sideways and we need to take these
+    forces into account. </p>
+  <p>Let's first look at low speed cornering.&nbsp; In this situation we
+    can assume that the wheels are moving in the direction they're
+    pointing.&nbsp; The wheels are rolling, but not slipping sideways.&nbsp;
+    If the front wheels are turned at an angle <i>delta</i> and the car is
+    moving at a constant speed, then the car will describe a circular
+    path.&nbsp; Imagine lines projecting from the centre of the hubcabs of
+    the front and rear wheel at the inside of the curve.&nbsp; Where these
+    two lines cross, that's the centre of the circle. </p>
+  <p>This is nicely illustrated in the following screenshot. Note how the
+    green lines all intersect in one point, the centre round which the car
+    is turning.&nbsp; You may also notice that the front wheels aren't
+    turned at the same angle, the outside wheel is turned slightly less than
+    the inside wheel.&nbsp; This is also what happens in real life, the
+    steering mechanism of a car&nbsp; is designed to turn the wheels at a
+    different angle. For a car simulation, this subtlety is probably not so
+    important.&nbsp; I'll just concentrate on the steering angle of the
+    front wheel at the inside of the curve and ignore the wheel at the other
+    side. <br>
+    &nbsp; </p>
+  <blockquote>
+    <blockquote>
+      <blockquote><img src="./media/ctturn.jpg" height="205" width="255"></blockquote>
+    </blockquote>
+  </blockquote>
+  <blockquote>
+    <blockquote>
+      <blockquote><i>
+          <font size="-1">This is a screen shot from a car
+            physics demo by Rui Martins.</font>
+        </i> <br>
+        <i>
+          <font size="-1">More illustrations and a download can be
+            found at</font>
+        </i> <br>
+        <i>
+          <font size="-1"><a
+              href="http://ruimartins.net/software/projects/racer/">http://ruimartins.net/software/projects/racer/</a>
+          </font>
+        </i>
+      </blockquote>
+    </blockquote>
+  </blockquote>
+  <p><br>
+    The radius of the circle can be determined via geometry as in the
+    following diagram: </p>
+  <center>
+    <p><img src="./media/ctangles.jpg" height="260" width="312"></p>
+  </center>
+  <p>The distance between front and rear axle is known at the wheel base
+    and denoted as L.&nbsp; The radius of the circle that the car describes
+    (to be precise the circle that the front wheel describes) is called
+    R.&nbsp; The diagram shows a triangle with one vertex in the circle
+    centre and one at the centre of each wheel.&nbsp; The angle at the rear
+    wheel is 90 degrees per definition.&nbsp; The angle at the front wheel
+    is 90 degrees minus <i>delta</i>.&nbsp; This means the angle at the
+    circle centre is also <i>delta</i> (the sum of the angles of a triangle
+    is always 180 degrees).&nbsp; The sine of this angle is the wheel base
+    divided by the circle radius, therefore: </p>
+  <dir>
+    <dir><img src="./media/cteq_r.gif" height="70" width="222"></dir>
+  </dir>
+  Note that if the steering angle is zero, then the circle radius is
+  infinite, i.e. we're driving in a straight line.
+  <p>Okay, so we can derive the circle radius from the steering angle,
+    now what?&nbsp; Well, the next step is to calculated the angular
+    velocity, i.e. the rate at which the car turns.&nbsp; Angular velocity
+    is usually represented using the Greek letter omega (<img alt="" src="./media/omega.gif" border="0"
+      height="12" width="14">), and is expressed
+    in radians per second. (A radian is a full circle divided by 2 pi). It
+    is fairly simple to determine: if we're driving circles at a constant
+    speed v and the radius of the circle is R, how long does it take to
+    complete one circle?&nbsp; That's the circumference divided by the
+    speed.&nbsp; In the time the car has described a circular path it has
+    also rotated around its up-axis exactly once. In other words: </p>
+  <dir>
+    <dir><img src="./media/cteq_av.gif"></dir>
+  </dir>
+  <p>By using these last two equations, we know how fast the car must
+    turn for a given steering angle at a specific speed.&nbsp; For low speed
+    cornering, that's all we need.&nbsp; The steering angle is determined
+    from user input. The car speed is determined as for the straight line
+    cases (the velocity vector always points in the car direction). From
+    this we calculate the circle radius and the angular velocity.&nbsp; The
+    angular velocity is used to change the car orientation at a specific
+    rate. The car's speed is unaffected by the turn, the velocity vector
+    just rotates to match the car's orientation. </p>
+    <hr>
+  <h4>High Speed Turning</h4>
+  <p>Of course, there are not many games involving cars that drive around
+    sedately (apart from the legendary <i>Trabant Granny Racer</i>
+    ;-).&nbsp; Gamers are an impatient lot and usually want to get somewhere
+    in a hurry, preferably involving some squealing of tires, grinding of
+    gearboxes and collateral damage to the surrounding environment.&nbsp;
+    Our goal is to find a physics model that will allow
+    understeer,oversteer, skidding, handbrake turns, etc. </p>
+  <p>At high speeds, we can no longer assume that wheels are moving in
+    the direction they're pointing.&nbsp; They're attached to the car body
+    which has a certain mass and&nbsp; takes time to react to steering
+    forces.&nbsp; The car body can also have an angular velocity.&nbsp; Just
+    like linear velocity, this takes time to build up or slow down.&nbsp;
+    This is determined by angular acceleration which is in turn dependent on
+    torque and inertia (which are the rotational equivalents of force and
+    mass). </p>
+  <p>Also, the car itself will not always be moving in the direction it's
+    heading.&nbsp; The car may be pointing one way but moving another
+    way.&nbsp; Think of rally drivers going through a curve.&nbsp; The angle
+    between the car's orientation and the car's velocity vector is known as
+    the sideslip angle (<i>beta</i>). </p>
+  <p> </p>
+  <center><img alt="" src="./media/ctbeta.jpg" border="0" height="143" width="113"></center>
+  <p>Now let's look at high speed cornering from the wheel's point of
+    view. In this situation we need to calculate the sideways speed of the
+    tires. Because wheels roll, they have relatively low resistance to
+    motion in forward or rearward direction.&nbsp;In the perpendicular
+    direction, however, wheels have great resistance to motion. Try pushing
+    a car tire sideways. This is very hard because you need to overcome the
+    maximum static friction force to get the wheel to slip. </p>
+  <p>In high speed cornering, the tires develop lateral forces also known
+    as the cornering force. This force depends on the slip angle (alpha),
+    which is the angle between the tire's heading and its direction of
+    travel. As the slip angle grows, so does the cornering force. The
+    cornering force per tire also depends on the weight on that tire. At low
+    slip angles, the relationship between slip angle and cornering force is
+    linear, in other words </p>
+  <blockquote>F<sub>lateral</sub> = C<sub>a</sub> * alpha</blockquote>
+  <p>where the constant C<sub>a&nbsp;</sub> is known as the cornering
+    stiffness. </p>
+  <p>If you'd like to see this explained in a picture, consider the
+    following one. The velocity vector of the wheel has angle alpha relative
+    to the direction in which the wheel can roll. We can split the velocity
+    vector v up into two component vectors. The longtitudinal vector has
+    magnitude cos(alpha) * v. Movement in this direction corresponds to the
+    rolling motion of the wheel. The lateral vector has magnitude sin(alpha)
+    * v and causes a resistance force in the opposite direction: the
+    cornering force. </p>
+  <center>
+    <p><img src="./media/ctimage8.gif" height="232" width="213"></p>
+  </center>
+  <p>There are three contributors to the slip angle of the wheels: the
+    sideslip angle of the car, the angular rotation of the car around the up
+    axis (yaw rate) and, for the front wheels, the steering angle. </p>
+  <p>The sideslip angle <font face="symbol">b</font> (b�ta) is the
+    difference between the car orientation and the direction of movement. In
+    other words, it's the angle between the longtitudinal axis and the
+    actual direction of travel. So it's similar in concept to what the slip
+    angle is for the tyres. Because the car may be moving in a different
+    direction than where it's pointing at, it experiences a sideways motion.
+    This is equivalent to the perpendicular component of the velocity
+    vector. </p>
+  <p align="center"><img alt="" src="./media/ctbeta.gif" border="0" height="60" width="140"></p>
+  <p>If the car is turning round the centre of geometry (CG) at a rate
+    omega (in rad/s!), this means the front wheels are describing a circular
+    path around CG at that same rate. If the car turns full circle, the
+    front wheel describes a&nbsp;circular path of distance 2.pi.b around CG
+    in 1/(2.pi.omega) seconds where b is the distance from the front axle to
+    the CG. This means a lateral velocity of omega * b. For the rear
+    wheels, this is -omega * c. Note the sign reversal. To express this as
+    an angle, take the arctangent of the lateral velocity divided by the
+    longtitudinal velocity (just like we did for beta).&nbsp; For small
+    angles we can approximate arctan(vy/vx) by vx/vy. </p>
+  <center>
+    <p><img src="./media/ctav.gif" height="170" width="148"></p>
+  </center>
+  <p>The steering angle (delta) is the angle that the front wheels make
+    relative to the orientation of the car. There is no steering angle for
+    the rear wheels, these are always in line with the car body orientation.
+    If the car is reversing, the effect of the steering is also
+    reversed.&nbsp; </p>
+  <center>
+    <p><img src="./media/ctdeltapic.gif" height="170" width="148"></p>
+  </center>
+  <p> The slip angles for the front and rear wheels are&nbsp;given by the
+    following equations: </p>
+  <p> </p>
+  <p> </p>
+  <p align="center"><img alt="slip angle equations" src="./media/ct_alphas.gif" border="0" height="169"
+      width="368"></p>
+  <p>The lateral force exercised by the tyre is a function of the slip
+    angle.&nbsp; In fact, for real tyres it's quite a complex function once
+    again best described by curve diagrams, such as the following:&nbsp; </p>
+  <p align="center"><img alt="slip angle curve" src="./media/ctsacurve.gif" border="0" height="274"
+      width="451"></p>
+  <p>What this diagram shows is how much lateral (sideways) force is
+    created for any particular value of the slip angle.&nbsp; This type of
+    diagram is specific to a particular type of tyre, this is a fictitious
+    but realistic example.&nbsp; The peak is at about 3 degrees.&nbsp; At
+    that point the lateral force even slightly exceeds the 5KN load on the
+    tyre. </p>
+  <p>This diagram is similar to the&nbsp;slip ratio curve we saw earlier,
+    but don't confuse them. The slip ratio curve gives us the forward force
+    depending on amount of longtitudinal slip.&nbsp; This curve gives us the
+    sideways (lateral) force depending on slip angle.&nbsp;</p>
+  <p>The lateral force not only depends on the slip angle, but also on
+    the load on the tyre.&nbsp; This is a plot for a load of 5000 N, i.e.
+    the weight exerted by about 500 kg of mass pushing down on one tyre.
+    Different curves apply to different loads because the weight changes the
+    tyre shape and therefore its properties. But the shape of the curve is
+    very similar apart from the scaling,&nbsp;so we can approximate that the
+    lateral force is linear with load and&nbsp;create a normalized lateral
+    force diagram by dividing the lateral force by the 5KN of load.</p>
+  <blockquote>F<sub>lateral</sub> = F<sub>n, lat</sub>&nbsp;* F<sub>z</sub><br>
+    where F<sub>n, lat</sub>&nbsp;is the normalized lateral force for a
+    given slip angle and F<sub>z</sub> is the load on the tyre.</blockquote>
+  <p>For very small angles (below the peak) the lateral force can be
+    approximated by a linear function: </p>
+  <blockquote>F<sub>lateral</sub> = C<sub>a</sub> * alpha</blockquote>
+  The constant C<sub>a </sub>goes by the name of the cornering
+  stiffness. This is the slope of the diagram at slip angle 0.
+  <p>If you want a better approximation of the the relationship between
+    slip angle and lateral force, search for information on the so-called
+    Pacejka Magic Formula, names after professor Pacejka who developed this
+    at Delft University.&nbsp; That's what tyre physicists use to model tyre
+    behaviour. It's a set of equations with lots of "magic"
+    constants.&nbsp; By choosing the right constants these
+    equations&nbsp;provide a very good approximation of curves found
+    through&nbsp;tyre tests.&nbsp; The problem is that tyre manufactors are
+    very secretive about the values of these constants for actual
+    tyres.&nbsp;So on the one hand, it's a very accurate modeling technique.
+    On the other hand, you'll have a hard time finding good tyre data to
+    make any use whatsoever of that accuracy. </p>
+  <p>The lateral forces of the four tyres have two results: a net
+    cornering force and a torque around the yaw axis.&nbsp; The cornering
+    force is the force on the CG at a right angle to the car orientation and
+    serves as the centripetal force which is required to describe a circular
+    path.&nbsp; The contribution of the rear wheels to the cornering force
+    is the same as the lateral force.&nbsp; For the front wheels, multiply
+    the lateral force with cos(delta) to allow for the steering angle. </p>
+  <blockquote>F<sub>cornering</sub> = F<sub>lat, rear</sub> + cos(delta)
+    * F<sub>lat, front</sub></blockquote>
+  As a point of interest, we can find the circle radius now that we know
+  the centripetal force using the following equation
+  <blockquote>F<sub>centripetal</sub> = M v<sup>2</sup> / radius</blockquote>
+  The lateral force also introduce a torque which causes the car body to
+  turn.&nbsp; After all, it would look very silly if the car is describing
+  a circle but keeps pointing in the same direction.&nbsp; The cornering
+  force makes sure the CG describes a circle, but since it operates on a
+  point mass it does nothing about the car orientation. That's what we
+  need the torque around the yaw axis for.
+  <p>Torque is force multiplied by the perpendicular distance between the
+    point where the force is applied and the pivot point.&nbsp; So for the
+    rear wheels the contribution to the torque is -F<sub>lat, rear</sub> * c
+    and for the front wheels it's cos(delta) * F<sub>lat, front </sub>*
+    b.&nbsp; Note that the sign differs. </p>
+  <p>Applying torque on the car body introduces angular
+    acceleration.&nbsp; Just like Newton's second law F = M.a, there is a
+    law for torque and angular acceleration: </p>
+  <blockquote>Torque = Inertia * angular acceleration.</blockquote>
+  <p>The inertia for a rigid body is a constant which depends on its mass
+    and geometry (and the distribution of the mass within its
+    geometry).&nbsp; Engineering handbooks provide formulas for the inertia
+    of common shapes such as spheres, cubes, etc.&nbsp; <br>
+    &nbsp; </p>
+  <p><strong>Epilogue</strong></p>
+  <p>You can <a href="http://home.planet.nl/%7Emonstrous/download.html#cardem08">download</a> a demo (car
+    demo v0.8) and the source code which demonstrates high speed cornering
+    using the method just described. Or easier yet, try the <a
+      href="http://www.cs.uni-magdeburg.de/%7Esodeike/java/CarPhysics/CarPhysics.html">Java
+      version</a> by Marcel "Bloemschneif" Sodeike! </p>
+  <p align="center"> <img alt="screen shot  of demo" src="./media/cardem08.gif" border="0" height="122"
+      width="162"></p>
+  <p> The following information is shown on screen: </p>
+  <ul>
+    <li>steering angle (also known as delta) </li>
+    <li>side slip angle (also known as beta) </li>
+    <li>"rotation angle" (due to yaw rate) </li>
+    <li>slip angle front wheels </li>
+    <li>slip angle rear wheels </li>
+    <li>velocity vector relative to car reference frame </li>
+    <li>velocity vector in world space</li>
+  </ul>
+  <br>
+  <img alt="legend" src="./media/legend.gif" border="0" height="326" width="433">
+  <p> See also my work in progress on the game <a href="http://home.planet.nl/%7Emonstrous/drivin.html">Downtown
+      Drivin'</a> for an example of some of the stuff that was discussed here.</p>
+  <p></p>
+  <p> If you spot mistakes in this tutorial or find sections that could do
+    with some clarification, let me know. </p>
+  <p>-Marco- </p>
+  <h4>References</h4>
+  [Beckham] <i>Physics of Racing</i> Series, Brian Beckham, <br>
+  <a href="http://phors.locost7.info/">http://phors.locost7.info</a>
+  <p>[Bower] Richard Bower, <br>
+    <a href="http://www.dur.ac.uk/%7Edph0rgb">http://www.dur.ac.uk/~dph0rgb</a>
+  </p>
+  <p>[Hecker] Chris Hecker, series on Physics in Game Development
+    Magazine, <br>
+    <a href="http://www.d6.com/users/checker/dynamics.htm">http://www.d6.com/users/checker/dynamics.htm</a>
+  </p>
+  <p>[Lander] Jeff Lander, The Trials and Tribulations of Tribology, <br>
+    <a
+      href="http://www.gamasutra.com/features/20000510/lander_01.htm">http://www.gamasutra.com/features/20000510/lander_01.htm</a>
+  </p>
+  <p>[RQRiley] <i>Automobile Ride, Handling and Suspension Design</i>,
+    R.Q. Riley Enterprises, <br>
+    <a href="http://www.rqriley.com/suspensn.html">http://www.rqriley.com/suspensn.html</a>
+  </p>
+  <p>[Zuvich] <i>Vehicle Dynamics for Racing Games</i>, Ted Zuvich, <br>
+    <a href="http://www.gdconf.com/2000/library/homepage.htm">http://www.gdconf.com/2000/library/homepage.htm</a>,
+    note that you need to obtain a (free) Gamasutra id to access the game
+    development conference archives. <br>
+    &nbsp; <br>
+    &nbsp;
+  </p>
+  <p><strong>Car specifications</strong> </p>
+  <p>It's handy to know what sort of values to use for all these
+    different constants we've seen.&nbsp; Preferably some real values from
+    some real cars. I've collected what I could for a <a href="http://home.planet.nl/%7Emonstrous/c5specs.html">Corvette
+      C5</a>. Be warned: some of the data is still guesswork. </p>
+  <p> </p>
+  <h4>Units and Conversions</h4>
+  The following S.I. units apply: <br>
+  &nbsp; <br>
+  &nbsp; <br>
+  &nbsp;
+  <table border="1" cellpadding="3" cellspacing="3">
+    <tbody>
+      <tr>
+        <td valign="center">Force</td>
+        <td valign="center">N (Newton)</td>
+        <td valign="center">= m.kg/s<sup>2</sup></td>
+      </tr>
+      <tr>
+        <td valign="center">Power</td>
+        <td valign="center">W (Watt)</td>
+        <td valign="center">= N.m/s = J/s = m<sup>2</sup> kg / s<sup>3</sup></td>
+      </tr>
+      <tr>
+        <td valign="center">Torque</td>
+        <td valign="center">N.m (Newton meter)</td>
+        <td valign="center">&nbsp;</td>
+      </tr>
+      <tr>
+        <td valign="center">Speed</td>
+        <td valign="center">m/s</td>
+        <td valign="center">&nbsp;</td>
+      </tr>
+      <tr>
+        <td valign="center">Angular velocity</td>
+        <td valign="center">rad/s</td>
+        <td valign="center">&nbsp;</td>
+      </tr>
+      <tr>
+        <td valign="center">Acceleration</td>
+        <td valign="center">m/s<sup>2</sup></td>
+        <td valign="center">&nbsp;</td>
+      </tr>
+      <tr>
+        <td valign="center">Mass</td>
+        <td valign="center">kg</td>
+        <td valign="center">&nbsp;</td>
+      </tr>
+      <tr>
+        <td valign="center">Distance</td>
+        <td valign="center">m</td>
+        <td valign="center">&nbsp;</td>
+      </tr>
+    </tbody>
+  </table>
+  Angle rad =360 degrees/ 2 pi
+  <p>Here are some handy unit conversions to S.I. units. <br>
+    &nbsp; <br>
+    &nbsp; <br>
+    &nbsp;
+  <table border="1" cellpadding="3" cellspacing="3">
+    <tbody>
+      <tr>
+        <td valign="center">1 mile</td>
+        <td valign="center">= 1.6093 km</td>
+      </tr>
+      <tr>
+        <td valign="center">1 ft (foot)</td>
+        <td valign="center">= 0.3048 m</td>
+      </tr>
+      <tr>
+        <td valign="center">1 in (inch)</td>
+        <td valign="center">= 0.0254 m = 2.54 cm</td>
+      </tr>
+      <tr>
+        <td valign="center">1 km/h</td>
+        <td valign="center">= 0.2778 m/s</td>
+      </tr>
+      <tr>
+        <td valign="center">1 mph</td>
+        <td valign="center">= 1.609 km/h = .447 m/s</td>
+      </tr>
+      <tr>
+        <td valign="center">1 rpm (revolution per minute)</td>
+        <td valign="center">= 0.105 rad/s</td>
+      </tr>
+      <tr>
+        <td valign="center">1 G</td>
+        <td valign="center">= 9.8 m/s<sup>2 </sup>= 32.1 lb/s<sup>2</sup></td>
+      </tr>
+      <tr>
+        <td valign="center">1 lb (pound)</td>
+        <td valign="center">= 4.45 N</td>
+      </tr>
+      <tr>
+        <td valign="center">1 lb (pound)</td>
+        <td valign="center">= 0.4536 kg <sup>1) </sup>= 1 lb/1G</td>
+      </tr>
+      <tr>
+        <td valign="center">1 lb.ft (foot pounds)</td>
+        <td valign="center">= 1.356 N.m</td>
+      </tr>
+      <tr>
+        <td valign="center">1 lb.ft/s (foot pound per second)</td>
+        <td valign="center">= 1.356 W</td>
+      </tr>
+      <tr>
+        <td valign="center">1 hp (horsepower) = 550 ft.lb/s</td>
+        <td valign="center">= 745.7 W&nbsp;</td>
+      </tr>
+      <tr>
+        <td valign="center">1 metric hp = 0.986 hp</td>
+        <td valign="center">= 735.5 W&nbsp;</td>
+      </tr>
+    </tbody>
+  </table>
+  <br>
+  &nbsp; <br>
+  &nbsp; </p>
+  <p>1) To say a pound equals so and so much kilograms is actually
+    nonsense. A pound is a unit of force and a kilogram is a unit of mass.
+    What we mean by this "conversion" is that one pound of weight (which is
+    a force) equals the weight exerted by 0.4536 kg of mass <i>assuming the
+      gravity is 9.8m/s<sup>2</sup></i>. On the moon, a kilogram will weigh
+    less but still have the same mass. </p>
+  <p>Unit converter on the web: <a
+      href="http://lecture.lite.msu.edu/%7Emmp/conversions/intro.htm">http://lecture.lite.msu.edu/~mmp/conversions/intro.htm</a>
+  </p>
+  <p> </p>
+  <hr>
+  <p>
+    <font size="-1">Marco Monster</font> <br>
+    <font size="-1">E-mail: <br><img src="./media/MonstrousSoftware-email-address.gif" alt="" border="0"
+        height="24" width="193"></font> <br>
+    <font size="-1">Website: <a href="http://home.planet.nl/%7Emonstrous">http://home.planet.nl/~monstrous</a></font>
+  </p>
+  <p>
+    <font size="-1">Copyright 2000-2003 Marco Monster. All rights
+      reserved. This tutorial may not be copied or redistributed without
+      permission.</font>
+  </p>
+</body>
+
+</html>
