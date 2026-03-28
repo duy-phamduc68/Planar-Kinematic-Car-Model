@@ -15,6 +15,8 @@ ENGINE_REGISTRY = {
     5: Long5Engine,
 }
 
+ENGINE_CHOICES = tuple((eid, ENGINE_REGISTRY[eid].label) for eid in sorted(ENGINE_REGISTRY.keys()))
+
 
 def get_longitudinal_engine(engine_id):
     """Create a longitudinal engine by id; defaults to Long.1 when unknown."""
@@ -24,3 +26,12 @@ def get_longitudinal_engine(engine_id):
 
 def supported_engine_ids():
     return tuple(sorted(ENGINE_REGISTRY.keys()))
+
+
+def get_engine_choices():
+    return ENGINE_CHOICES
+
+
+def get_engine_label(engine_id):
+    engine_cls = ENGINE_REGISTRY.get(engine_id, Long1Engine)
+    return engine_cls.label
