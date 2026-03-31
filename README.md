@@ -40,38 +40,42 @@ The goal is to keep the simulator educational and inspectable: each model layer 
 
 This guide lists all simulator controls. It replaces the in-simulator input guide popup.
 
-#### Keyboard
+#### Keyboard Controls
 
-- `W` / `Up`: Throttle
-- `Space` / `Down`: Brake
-- `A` / `Left`: Steer left
-- `D` / `Right`: Steer right
-- `J`: Downshift
-- `K`: Upshift
-- `1`: Toggle auto shift
-- `2`: Zoom in
-- `3`: Zoom out
-- `4`: Toggle trajectory
-- `5`: Toggle true form
-- `Q`: Timer cycle (idle -> running -> stopped -> idle)
-- `R`: Reset scenario
-- `Esc`: Open/close options
+| Key(s)                            | Action                                        |
+| --------------------------------- | --------------------------------------------- |
+| `W` / `Up`                        | Throttle                                      |
+| `Space` / `Down` / `S` / `LShift` | Brake                                         |
+| `A` / `Left`                      | Steer left                                    |
+| `D` / `Right`                     | Steer right                                   |
+| `J`                               | Downshift                                     |
+| `K`                               | Upshift                                       |
+| `1`                               | Toggle auto shift                             |
+| `2`                               | Zoom in                                       |
+| `3`                               | Zoom out                                      |
+| `4`                               | Toggle trajectory                             |
+| `5`                               | Toggle true form                              |
+| `Q`                               | Timer cycle (idle → running → stopped → idle) |
+| `R`                               | Reset scenario                                |
+| `Esc`                             | Open/close options                            |
 
-#### XBox Controller (XInput)
+#### Xbox Controller (XInput)
 
-- `RT`: Throttle
-- `LT`: Brake
-- `Left stick X`: Steering
-- `X` or `LB`: Downshift
-- `B` or `RB`: Upshift
-- `A`: Toggle auto shift
-- `Y`: Toggle trajectory
-- `D-pad Left`: Timer cycle (idle -> running -> stopped -> idle)
-- `D-pad Right`: Toggle true form
-- `Back` / `Select`: Reset scenario
-- `D-pad Up`: Zoom in
-- `D-pad Down`: Zoom out
-- `Start`: Open/close options
+| Control           | Action                                        |
+| ----------------- | --------------------------------------------- |
+| `RT`              | Throttle                                      |
+| `LT`              | Brake                                         |
+| `Left Stick X`    | Steering                                      |
+| `X` / `LB`        | Downshift                                     |
+| `B` / `RB`        | Upshift                                       |
+| `A`               | Toggle auto shift                             |
+| `Y`               | Toggle trajectory                             |
+| `D-pad Left`      | Timer cycle (idle → running → stopped → idle) |
+| `D-pad Right`     | Toggle true form                              |
+| `Back` / `Select` | Reset scenario                                |
+| `D-pad Up`        | Zoom in                                       |
+| `D-pad Down`      | Zoom out                                      |
+| `Start`           | Open/close options                            |
 
 ### Note
 

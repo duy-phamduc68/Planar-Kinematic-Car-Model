@@ -387,6 +387,12 @@ class Simulator:
         if not isinstance(spec, dict):
             return False
 
+        # Always start from factory defaults for the currently selected engine.
+        # This prevents omitted fields in a preset from leaking in from a
+        # previously applied preset.
+        self.car.set_engine(self.car.engine_id, preserve_speed=False)
+        self._apply_auto_shift_mode()
+
         engine = getattr(self.car, "engine", None)
         if engine is None:
             return False
@@ -702,7 +708,7 @@ class Simulator:
                     self._w_held = is_down
                     if is_down:
                         self._last_keyboard_input_t = now
-                if event.key in (pygame.K_SPACE, pygame.K_DOWN):
+                if event.key in (pygame.K_SPACE, pygame.K_DOWN, pygame.K_LSHIFT, pygame.K_s):
                     self._s_held = is_down
                     if is_down:
                         self._last_keyboard_input_t = now
