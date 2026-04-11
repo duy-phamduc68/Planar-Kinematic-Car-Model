@@ -6,6 +6,8 @@ Check out the learning journey on my blog: [yuk068.github.io](https://yuk068.git
 
 **Model 1-5** (Longitudinal Simulators) are in this repository: [duy-phamduc68/Longitudinal-Car-Physics](https://github.com/duy-phamduc68/Longitudinal-Car-Physics)
 
+**Model 7**(Planar Dynamic Car Model) is in this repository: [duy-phamduc68/Planar-Dynamic-Car-Model](https://github.com/duy-phamduc68/Planar-Dynamic-Car-Model)
+
 I try to break down each model both mathematically (continuous math) and implement them in code.
 
 This repository contains code for **Model 6** of the roadmap.
@@ -81,30 +83,6 @@ This guide lists all simulator controls. It replaces the in-simulator input guid
 
 A `MCLAREN_P1` preset can be found in the provided presets, this set is estimated from various in-real-life public sources, meant to represent an actual car. Its here mostly to help me validate a mathematical modeling paper for my schoolwork.
 
-## Roadmap
-
-```
-- [x] Model 1: Longitudinal Point Mass (1D)
-    - Straight Line Physics
-    - Magic Constants
-    - Braking
-- [x] Model 2: Load Transfer Without Traction Limits (1D)
-    - Weight Transfer
-- [x] Model 3: Engine Torque + Gearing without Slip (1D)
-    - Engine Force
-    - Gear Ratios
-    - Drive Wheel Acceleration (simplified)
-- [x] Model 4: Wheel Rotational Dynamics (1D)
-    - Drive Wheel Acceleration (full)
-- [x] Model 5: Slip Ratio + Traction Curve (1D)
-    - Slip Ratio & Traction Force
-- [x] Model 6: Low-Speed Kinematic Turning (2D)
-    - Curves (low speed)
-- [ ] Model 7: High-Speed Lateral Tire Model (2D)
-    - High Speed Turning
-- [ ] Model 8: Full Coupled Tire Model (2D)
-```
-
 Completed models:
 
 - [Model 1: Longitudinal Point Mass (1D)](https://github.com/duy-phamduc68/Longitudinal-Car-Physics#model-1-longitudinal-point-mass-1d)
@@ -113,5 +91,4 @@ Completed models:
 - [Model 4: Wheel Rotational Dynamics (1D)](https://github.com/duy-phamduc68/Longitudinal-Car-Physics#model-4-wheel-rotational-dynamics-1d)
 - [Model 5: Slip Ratio + Traction Curve (1D)](https://github.com/duy-phamduc68/Longitudinal-Car-Physics#model-5-slip-ratio--traction-curve-1d)
 - [Model 6: Low-Speed Kinematic Turning (2D)](#model-6-low-speed-kinematic-turning-2d)
-- [Model 7: High-Speed Lateral Tire Model (2D)]
-- [Model 8: Full Coupled Tire Model (2D)]
+- [Model 7: High-Speed Lateral Tire Model (2D)](https://github.com/duy-phamduc68/Planar-Dynamic-Car-Model)
